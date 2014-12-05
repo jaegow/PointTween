@@ -1,0 +1,298 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+	
+	<head>
+		<style>
+			* { box-sizing: border-box; }
+
+			body {
+			  background: #fcfcfc;
+			  height: 100vh;
+			  padding: 20vmin;
+			}
+
+			svg {
+			  width: 100%;
+			  height: 100%;
+			}
+		</style>		
+	</head>
+
+	<body>
+		<svg viewbox="0 0 100 100">
+		  <path id="svg_path" fill="#1EB287" d="M 0,0 C 50,0 50,0 100,0 100,50 100,50 100,100 50,100 50,100 0,100 0,50 0,50 0,0">
+		</svg>
+	</body>
+	
+	<script type="text/javascript">
+		// Dependent Upon
+		// - 
+		// Modules (static)
+		// - Util
+
+		// ------------------ Util (static)
+		var Util = function() {
+		    // private method(s)
+		    var _log = function() {
+		        // if(localStorageVariable==debug==false) return;
+		        if (typeof console === "undefined" || typeof console.log === "undefined") return; // no log available
+		        
+		        for (var i = 0; i < arguments.length; i++) {
+		            var iteredArgument = arguments[i];
+		            console.log(iteredArgument);
+		        }
+		    };
+
+		    var _mergeArrays = function() {
+		        var i, ii, newArray = [], arrayAmount, iteredArray, iteredArrayContentsAmount;
+		        arrayAmount = arguments.length;
+		        for (i = 0; i < arrayAmount; i++) {
+		            iteredArray = arguments[i];
+		            iteredArrayContentsAmount = iteredArray.length;
+		            for (ii = 0; ii < iteredArrayContentsAmount; ii++) {
+		                newArray.push(iteredArray[ii]);
+		            }
+		        }
+		        return newArray;
+		    };
+		    // output/public     
+		    return {
+		        log: _log,
+		        mergeArrays:_mergeArrays
+		    };
+		}();
+	</script>
+
+	<script>
+		// 
+		var path_point_collection = [
+			'M 0,0 C 50,0 50,0 100,0 100,50 100,50 100,100 50,100 50,100 0,100 0,50 0,50 0,0',
+			'M 50,0 C 75,25 75,25 100,50 75,75 75,75 50,100 25,75 25,75 0,50 25,25 25,25 50,0',
+			'M 25,50 C 37.5,25 37.5,25 50,0 75,50 75,50 100,100 50,100 50,100 0,100 12.5,75 12.5,75 25,50',
+			'M 50,0 C 77.6,0 100,22.4 100,50 100,77.6 77.6,100 50,100 22.4,100, 0,77.6, 0,50 0,22.4, 22.4,0, 50,0',
+			'M 100,0 C 100,50 100,50 100,100 50,100 50,100 0,100 0,50 0,50 0,0 50,0 50,0 100,0'
+		];
+
+		var svg_path = document.getElementById('svg_path');
+
+		// small footprint ready checker
+		var _checkReady = setInterval(function() {
+			if (document.readyState == "complete") _pageReady();
+		}, 15);
+
+		var _pageReady = function() {
+			clearInterval(_checkReady);
+			_init();
+		};
+
+		var _init = function() {
+			var path_point_object_collection = _returnPathPointObjectCollection(path_point_collection);
+			var animation_step_amount = 100;
+			var path_point_animation_steps = _returnPathPointAnimationSteps(path_point_object_collection, animation_step_amount);
+			var stringified_animation_steps = _returnStringAnimationSteps(path_point_animation_steps);
+			Util.log('stringified_animation_steps',stringified_animation_steps);
+			// quick example of animation array	with out tweening each 
+			_buildAnimationSteps(stringified_animation_steps);
+		};
+
+		// quick example of animation array	with out tweening each 
+		var _buildAnimationSteps = function(animations) {
+			var timeout = 500;
+			var timeoutIncrement = 100;
+			for (var i = 0; i < animations.length; i++) {
+				var itered = animations[i];
+				_delaySet(timeout, itered);
+				timeout += timeoutIncrement;
+			}
+		};
+		var _delaySet = function(timeout, set) {
+			setTimeout(function() {
+				svg_path.setAttribute("d", set);
+			}, timeout);
+		};
+		//
+		var _returnPathPointObjectCollection = function(path_points) {
+			var pathPointObjectCollection = [];
+			var letterMatch_regex = /[MCZ]/g;
+			var iteredPathPoints;
+			var pathPointObject;
+			var current;
+			var previous;
+			var match;
+			var matches = [];
+			var iteredMatch;
+			// todo: move iteration variables outside of loop for faster iteration
+			// var i, ii, i_limit, ii_limit;
+			// i_limit = path_points.length;
+			for (var i = 0; i < path_points.length; i++) {
+				iteredPathPoints = path_points[i];
+				// find a match for letters M,C,Z
+				while (match = letterMatch_regex.exec(iteredPathPoints)) {
+					current = {letter:match[0], index:match.index};
+					// if a previous match has been stored
+					if(matches.length) {
+						previous = matches[matches.length-1];
+						previous['values'] = iteredPathPoints.slice(previous.index+2,current.index-1).split(' ');
+					}
+					matches.push(current);
+				}
+				// handle setting the last object value
+				current['values'] = iteredPathPoints.slice(current.index+2,iteredPathPoints.length).split(' ');
+				// matches object is utilized to track previous placement and to then set the pathPointObject
+				// ii_limit = matches.length;
+				pathPointObject = {};
+				for (var ii = 0; ii < matches.length; ii++) {
+					iteredMatch = matches[ii];
+					var string_values = iteredMatch.values;
+					var int_values = [];
+					for (var iii = 0; iii < string_values.length; iii++) {
+						var iteredStringValue = string_values[iii];
+						if(iteredStringValue && iteredStringValue.length) {
+							var separatedStrings = iteredStringValue.split(',');
+							int_values.push({
+								x:parseInt(separatedStrings[0]),
+								y:parseInt(separatedStrings[1])
+							});		
+						}
+					}
+					// todo: possibly expand on object 
+					pathPointObject[iteredMatch.letter] = int_values;
+				}
+				// blank out for next iteration
+				matches = []; 
+				// //
+				pathPointObjectCollection.push(pathPointObject);
+			}
+			return pathPointObjectCollection;
+		};
+
+		var _returnPathPointAnimationSteps = function(stepObjects, stepAmount) {
+			// todo: re-define the between amount and step amount algorithm
+			// quick and dirty
+			var stepsProvided = stepObjects.length;
+			var betweenAmount = Math.floor(  (stepAmount - stepsProvided) / stepsProvided ) ;
+
+			Util.log('betweenAmount',betweenAmount);
+
+			var animationSteps = [];
+			var iteredStepObject, current, previous;
+			
+			// start with the second i = 1
+			for (var i = 1; i < stepsProvided; i++) {
+				var current = stepObjects[i];
+				var previous = stepObjects[i-1];
+				// Util.log('previous',previous);
+				animationSteps.push(previous)
+				var betweenSteps = _returnDifferenceSteps(previous, current, betweenAmount);
+				animationSteps = Util.mergeArrays(animationSteps, betweenSteps);
+			}
+			// push last
+			animationSteps.push(previous)
+			return animationSteps;
+		};
+
+		var _returnDifferenceSteps = function(first, second, stepAmount) {
+			
+			var animationSteps = [];
+			var i = 0;
+			// create the blank step objects
+			for (i = 0; i < stepAmount; i++) {
+				animationSteps.push({});
+			}
+
+			// allows for dynamic variable setting and getting
+			for (var property in first) {
+				if (first.hasOwnProperty(property) && second.hasOwnProperty(property)) {
+					var points_start = first[property];						
+					var points_end = second[property];
+					// 
+					if(points_start.length === points_end.length) {
+						var pointAmount = points_start.length
+
+						for (i = 0; i < pointAmount; i++) {
+							var point_start = points_start[i];
+							var point_end = points_end[i];
+							var x_start = point_start.x;
+							var y_start = point_start.y;
+							var x_end = point_end.x;
+							var y_end = point_end.y;
+							// var x_increment = x_difference/stepAmount;
+							// var y_increment = y_difference/stepAmount;
+							var x_next = x_start;
+							var y_next = y_start;
+							var x_difference = x_next - x_end;
+							var y_difference = y_next - y_end;
+							var x_distance = Math.sqrt((x_difference*x_difference));
+							var y_distance = Math.sqrt((y_difference*y_difference));
+							var x_y_distance;
+							for (var ii = 0; ii < stepAmount; ii++) {
+								var iteredStep = animationSteps[ii];
+								var propertyArray = iteredStep[property];
+								// create an array if not yet created
+								if(!propertyArray) propertyArray = iteredStep[property] = [];
+								//
+								x_difference = x_next - x_end;
+								y_difference = y_next - y_end;
+
+								x_distance = Math.sqrt((x_difference*x_difference));
+								y_distance = Math.sqrt((y_difference*y_difference));
+								// x_y_distance = Math.sqrt((x_difference*x_difference) + (y_difference*y_difference));
+								var x_move = x_distance * (ii/stepAmount);
+								var y_move = y_distance * (ii/stepAmount);
+								
+								if(x_difference<0) {
+									x_next += x_move;	
+								} else {
+									x_next -= x_move;
+								}
+								if(y_difference<0) {
+									y_next += y_move;	
+								} else {
+									y_next -= y_move;
+								}
+								propertyArray.push({x:x_next, y:y_next});
+							}
+						}
+					} else {
+						Util.log('todo : some complex magic if this is the case');
+					}
+
+				} else {
+					Util.log('why you not have matching props');
+				}
+			}
+			return animationSteps;
+		};
+			
+		var _returnStringAnimationSteps = function(pathObjects) {
+			var stringSteps = [];
+			
+			for (var i = 0; i < pathObjects.length; i++) {
+				var iteredPathObject = pathObjects[i];
+				var stringPath = '';
+				//
+				for (var property in iteredPathObject) {
+					// Util.log('property',property);
+					stringPath += property+' '
+					var points = iteredPathObject[property];
+					stringPath += _returnPointString(points);						
+				}
+				stringSteps.push(stringPath);
+			}
+
+			return stringSteps;
+		};
+
+		var _returnPointString = function(pointCollection) {
+			var pointString = [];
+			for (var i = 0; i < pointCollection.length; i++) {
+				var iteredPoint = pointCollection[i];
+				var point_x = Math.round(iteredPoint.x).toString();
+				var point_y = Math.round(iteredPoint.y).toString();
+				pointString += point_x + ',' + point_y + ' '
+			}
+			return pointString;
+		};
+
+	</script>
+
+</html>
